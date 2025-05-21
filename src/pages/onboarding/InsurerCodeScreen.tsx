@@ -1,147 +1,60 @@
-import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Building2, HelpCircle } from 'lucide-react';
-import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
-import Button from '../../components/Button';
-import { useNotification } from '../../contexts/NotificationContext';
-
-const insurerCodeSchema = z.object({
-  insurerCode: z.string()
-    .min(6, 'Insurer code must be at least 6 characters')
-    .max(12, 'Insurer code cannot exceed 12 characters')
-    .regex(/^[A-Z0-9]+$/, 'Code must contain only uppercase letters and numbers'),
-});
-
-type InsurerCodeForm = z.infer<typeof insurerCodeSchema>;
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const InsurerCodeScreen: React.FC = () => {
+  const [insurerCode, setInsurerCode] = useState('');
   const navigate = useNavigate();
-  const { addNotification } = useNotification();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<InsurerCodeForm>({
-    resolver: zodResolver(insurerCodeSchema),
-  });
 
-  const onSubmit = async (data: InsurerCodeForm) => {
-    try {
-      // In a real app, this would validate the code with an API
-      console.log('Validating insurer code:', data.insurerCode);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store the code in session storage for demo
-      sessionStorage.setItem('insurerCode', data.insurerCode);
-      
-      addNotification({
-        type: 'success',
-        message: 'Insurer code validated successfully!',
-      });
-      
-      navigate('/onboarding/accident-code');
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: 'Failed to validate insurer code. Please try again.',
-      });
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate('/onboarding/accident-code');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary-500 p-4">
-      <div 
-        className="absolute inset-0 bg-[url('/assets/protea-pattern.svg')] opacity-10"
-        aria-hidden="true"
-      ></div>
-      
-      <div className="w-full max-w-md animate-fade-in">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-primary-50">
-            <h1 className="text-xl font-semibold text-primary-800 flex items-center">
-              <Building2 className="w-5 h-5 mr-2" />
-              Enter Your Insurer Code
-            </h1>
-          </CardHeader>
-          
-          <CardBody>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <label 
-                  htmlFor="insurerCode" 
-                  className="block text-sm font-medium text-primary-700 mb-1"
-                >
-                  Insurer Code
-                </label>
-                <div className="relative">
-                  <input
-                    id="insurerCode"
-                    type="text"
-                    {...register('insurerCode')}
-                    className={`block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-offset-2 ${
-                      errors.insurerCode
-                        ? 'border-error-300 focus:border-error-500 focus:ring-error-500'
-                        : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500'
-                    }`}
-                    placeholder="e.g., SANLAM123"
-                  />
-                  <div className="absolute right-0 top-0 h-full flex items-center pr-3">
-                    <HelpCircle 
-                      className="w-5 h-5 text-neutral-400 cursor-help"
-                      title="Enter the code provided by your insurer"
-                    />
-                  </div>
-                </div>
-                {errors.insurerCode && (
-                  <p className="mt-1 text-sm text-error-600">
-                    {errors.insurerCode.message}
-                  </p>
-                )}
-                <p className="mt-2 text-sm text-primary-600">
-                  You can find this code in your insurance documentation or contact your insurer
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={isSubmitting}
-                  className="flex-1"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                      Validating...
-                    </div>
-                  ) : (
-                    'Continue'
-                  )}
-                </Button>
-                
-                <Link to="/onboarding/accident-code" className="flex-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Skip for Now
-                  </Button>
-                </Link>
-              </div>
-            </form>
-          </CardBody>
-          
-          <CardFooter className="bg-primary-50 text-center">
-            <p className="text-sm text-primary-700">
-              Need help finding your code?{' '}
-              <Link to="/help" className="text-primary-600 hover:text-primary-500 font-medium">
-                Contact Support
-              </Link>
+    <div className="min-h-screen bg-[#003366] flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+        <h1 className="text-2xl font-bold text-[#003366] mb-6">
+          Enter Your Insurer Code
+        </h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label 
+              htmlFor="insurerCode"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Insurer Code
+            </label>
+            <input
+              type="text"
+              id="insurerCode"
+              value={insurerCode}
+              onChange={(e) => setInsurerCode(e.target.value)}
+              placeholder="e.g., SANLAM123"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                       focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Enter the code provided by your insurance company
             </p>
-          </CardFooter>
-        </Card>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                     hover:bg-[#009933]/90 transition-colors duration-200"
+          >
+            Add Insurer
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/onboarding/accident-code')}
+            className="w-full text-[#003366] text-sm mt-2 hover:underline"
+          >
+            Skip for now
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -6,257 +6,211 @@ import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
 import Button from '../../components/Button';
 
+interface RegisterForm {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  userType: 'policyholder' | 'insurer';
+  acceptTerms: boolean;
+}
+
 const RegisterPage: React.FC = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreeDataProcessing, setAgreeDataProcessing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { register } = useAuth();
-  const { addNotification } = useNotification();
   const navigate = useNavigate();
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Form validation
-    if (!name || !email || !password || !confirmPassword) {
-      addNotification({
-        type: 'error',
-        message: 'Please fill in all required fields',
-      });
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      addNotification({
-        type: 'error',
-        message: 'Passwords do not match',
-      });
-      return;
-    }
-    
-    if (!agreeTerms || !agreeDataProcessing) {
-      addNotification({
-        type: 'error',
-        message: 'You must agree to the terms and data processing consent',
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      await register(name, email, password);
-      addNotification({
-        type: 'success',
-        message: 'Registration successful! Redirecting to dashboard...',
-      });
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Registration error:', error);
-      addNotification({
-        type: 'error',
-        message: 'Registration failed. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const [formData, setFormData] = useState<RegisterForm>({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    userType: 'policyholder',
+    acceptTerms: false
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
   };
-  
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle registration logic here
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    navigate('/onboarding/welcome');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-primary-500">
-      <div 
-        className="absolute inset-0 bg-[url('/assets/protea-pattern.svg')] opacity-10"
-        aria-hidden="true"
-      ></div>
-      
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Create An Account</h1>
-          <p className="text-neutral-200 mt-2">
-            Join Detachd to start protecting your business
+    <div 
+      className="min-h-screen bg-[#003366] flex items-center justify-center p-4"
+      style={{
+        backgroundImage: 'url(/assets/protea-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      <div className="absolute inset-0 bg-[#003366]/80"></div>
+
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-[#003366]">Create Account</h1>
+            <p className="text-gray-600 mt-2">Join Detachd today</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label 
+                htmlFor="userType" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                I am a
+              </label>
+              <select
+                id="userType"
+                name="userType"
+                value={formData.userType}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+              >
+                <option value="policyholder">Policyholder</option>
+                <option value="insurer">Insurance Provider</option>
+              </select>
+            </div>
+
+            <div>
+              <label 
+                htmlFor="name" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label 
+                htmlFor="email" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label 
+                htmlFor="password" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label 
+                htmlFor="confirmPassword" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="acceptTerms"
+                name="acceptTerms"
+                checked={formData.acceptTerms}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 text-[#009933] border-gray-300 rounded
+                         focus:ring-[#009933]"
+                required
+              />
+              <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/terms')}
+                  className="text-[#009933] hover:text-[#009933]/80"
+                >
+                  Terms of Service
+                </button>{' '}
+                and{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/privacy')}
+                  className="text-[#009933] hover:text-[#009933]/80"
+                >
+                  Privacy Policy
+                </button>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                       hover:bg-[#009933]/90 transition-colors duration-200"
+            >
+              Create Account
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <button
+              onClick={() => navigate('/login')}
+              className="text-[#009933] hover:text-[#009933]/80 font-medium"
+            >
+              Sign in
+            </button>
           </p>
         </div>
-        
-        <Card className="shadow-lg">
-          <CardHeader className="bg-primary-50">
-            <h2 className="text-xl font-semibold text-primary-800 flex items-center">
-              <UserPlus className="w-5 h-5 mr-2" />
-              Register
-            </h2>
-          </CardHeader>
-          
-          <CardBody>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-primary-700 mb-1">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="John Doe"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-primary-700 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-primary-500">
-                  Password must be at least 8 characters long
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-primary-700 mb-1">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <CheckCircle className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start">
-                  <div className="flex items-center h-5">
-                    <input
-                      id="terms"
-                      name="terms"
-                      type="checkbox"
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
-                    />
-                  </div>
-                  <div className="ml-3 text-sm">
-                    <label htmlFor="terms" className="text-primary-700">
-                      I agree to the{' '}
-                      <Link to="/terms" className="text-primary-600 hover:text-primary-500">
-                        Terms of Service
-                      </Link>{' '}
-                      and{' '}
-                      <Link to="/privacy" className="text-primary-600 hover:text-primary-500">
-                        Privacy Policy
-                      </Link>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <div className="flex items-center h-5">
-                    <input
-                      id="data-processing"
-                      name="data-processing"
-                      type="checkbox"
-                      checked={agreeDataProcessing}
-                      onChange={(e) => setAgreeDataProcessing(e.target.checked)}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
-                    />
-                  </div>
-                  <div className="ml-3 text-sm">
-                    <label htmlFor="data-processing" className="text-primary-700">
-                      I consent to the processing of my personal information in accordance with POPIA regulations
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  fullWidth
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                      Creating account...
-                    </div>
-                  ) : (
-                    'Create Account'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-          
-          <CardFooter className="bg-primary-50 text-center">
-            <p className="text-sm text-primary-700">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
       </div>
     </div>
   );

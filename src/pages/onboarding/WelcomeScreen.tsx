@@ -1,39 +1,33 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import Button from '../../components/Button';
+import { useNavigate } from 'react-router-dom';
 
 const WelcomeScreen: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary-500 relative">
-      <div 
-        className="absolute inset-0 bg-[url('/assets/protea-pattern.svg')] opacity-10"
-        aria-hidden="true"
-      ></div>
-      
-      <div className="max-w-lg w-full mx-4 text-center z-10 animate-fade-in">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-          Welcome to Detachd
+    <div 
+      className="min-h-screen bg-[#003366] flex items-center justify-center relative"
+      style={{
+        backgroundImage: 'url(/assets/protea-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      <div className="absolute inset-0 bg-[#003366]/80"></div>
+      <div className="relative z-10 text-center p-6">
+        <h1 className="text-4xl font-bold text-white mb-6">
+          Welcome to Detachd!
         </h1>
-        
-        <p className="text-xl text-neutral-200 mb-8">
-          Let's get started by setting up your insurance profile and linking your first claim.
+        <p className="text-white/90 text-lg mb-8 max-w-md mx-auto">
+          Let's get started with setting up your insurance verification system.
         </p>
-        
-        <Link to="/onboarding/insurer-code">
-          <Button 
-            variant="secondary" 
-            size="lg"
-            className="flex items-center justify-center"
-          >
-            Start Setup
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-        </Link>
-        
-        <p className="mt-6 text-sm text-neutral-300">
-          This will only take a few minutes
-        </p>
+        <button
+          onClick={() => navigate('/onboarding/insurer-code')}
+          className="bg-[#009933] text-white px-8 py-3 rounded-lg font-semibold 
+                   hover:bg-[#009933]/90 transition-colors duration-200"
+        >
+          Start
+        </button>
       </div>
     </div>
   );

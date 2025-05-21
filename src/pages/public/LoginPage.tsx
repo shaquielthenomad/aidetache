@@ -6,9 +6,17 @@ import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
 import Button from '../../components/Button';
 
+interface LoginForm {
+  email: string;
+  password: string;
+}
+
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loginType, setLoginType] = useState<'policyholder' | 'insurer'>('policyholder');
+  const [formData, setFormData] = useState<LoginForm>({
+    email: '',
+    password: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   
   const { login } = useAuth();
@@ -19,11 +27,16 @@ const LoginPage: React.FC = () => {
   // Get the redirect path from the location state, or default to dashboard
   const from = location.state?.from?.pathname || '/dashboard';
   
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Form validation
-    if (!email || !password) {
+    if (!formData.email || !formData.password) {
       addNotification({
         type: 'error',
         message: 'Please enter both email and password',
@@ -34,12 +47,21 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await login(email, password);
-      addNotification({
-        type: 'success',
-        message: 'Login successful! Redirecting...',
-      });
-      navigate(from, { replace: true });
+      if (loginType === 'policyholder') {
+        await login(formData.email, formData.password);
+        addNotification({
+          type: 'success',
+          message: 'Login successful! Redirecting...',
+        });
+        navigate(from, { replace: true });
+      } else {
+        // Handle insurer login logic
+        addNotification({
+          type: 'success',
+          message: 'Insurer login logic not implemented yet',
+        });
+        navigate('/insurer/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
       addNotification({
@@ -50,136 +72,152 @@ const LoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
+  const handleDemoLogin = () => {
+    // Set demo credentials and redirect to insurer dashboard
+    navigate('/insurer/dashboard');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-primary-500">
-      <div 
-        className="absolute inset-0 bg-[url('/assets/protea-pattern.svg')] opacity-10"
-        aria-hidden="true"
-      ></div>
-      
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-          <p className="text-neutral-200 mt-2">
-            Sign in to access your Detachd account
-          </p>
-        </div>
-        
-        <Card className="shadow-lg">
-          <CardHeader className="bg-primary-50">
-            <h2 className="text-xl font-semibold text-primary-800 flex items-center">
-              <LogIn className="w-5 h-5 mr-2" />
-              Login to Your Account
-            </h2>
-          </CardHeader>
-          
-          <CardBody>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1">
-                  Email Address
+    <div 
+      className="min-h-screen bg-[#003366] flex items-center justify-center p-4"
+      style={{
+        backgroundImage: 'url(/assets/protea-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      <div className="absolute inset-0 bg-[#003366]/80"></div>
+
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-[#003366]">Welcome Back</h1>
+            <p className="text-gray-600 mt-2">Sign in to your account</p>
+          </div>
+
+          {/* Login Type Selector */}
+          <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
+            <button
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors
+                ${loginType === 'policyholder'
+                  ? 'bg-white text-[#003366] shadow'
+                  : 'text-gray-600 hover:text-[#003366]'
+                }`}
+              onClick={() => setLoginType('policyholder')}
+            >
+              Policyholder
+            </button>
+            <button
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors
+                ${loginType === 'insurer'
+                  ? 'bg-white text-[#003366] shadow'
+                  : 'text-gray-600 hover:text-[#003366]'
+                }`}
+              onClick={() => setLoginType('insurer')}
+            >
+              Insurer
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label 
+                htmlFor="email" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label 
+                htmlFor="password" 
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md
+                         focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  className="h-4 w-4 text-[#009933] border-gray-300 rounded
+                           focus:ring-[#009933]"
+                />
+                <label htmlFor="remember" className="ml-2 text-gray-600">
+                  Remember me
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="you@example.com"
-                  />
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-[#009933] hover:text-[#009933]/80"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                       hover:bg-[#009933]/90 transition-colors duration-200"
+            >
+              Sign In
+            </button>
+          </form>
+
+          {loginType === 'insurer' && (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or</span>
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-primary-700 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-primary-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
+              <button
+                onClick={handleDemoLogin}
+                className="mt-4 w-full bg-[#003366] text-white py-2 px-4 rounded-md
+                         hover:bg-[#003366]/90 transition-colors duration-200"
+              >
+                Try Demo Insurer Account
+              </button>
+            </div>
+          )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-primary-700">
-                    Remember me
-                  </label>
-                </div>
-
-                <div className="text-sm">
-                  <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
-                    Forgot your password?
-                  </Link>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  fullWidth
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                      Signing in...
-                    </div>
-                  ) : (
-                    'Sign in'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-          
-          <CardFooter className="bg-primary-50 text-center">
-            <p className="text-sm text-primary-700">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                Register now
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-neutral-200">
-            By signing in, you agree to our{' '}
-            <Link to="/terms" className="text-white hover:underline">
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link to="/privacy" className="text-white hover:underline">
-              Privacy Policy
-            </Link>
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Don't have an account?{' '}
+            <button
+              onClick={() => navigate('/register')}
+              className="text-[#009933] hover:text-[#009933]/80 font-medium"
+            >
+              Sign up
+            </button>
           </p>
         </div>
       </div>

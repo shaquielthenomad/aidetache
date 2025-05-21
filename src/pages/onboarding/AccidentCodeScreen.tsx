@@ -1,144 +1,71 @@
-import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { FileText, HelpCircle } from 'lucide-react';
-import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
-import Button from '../../components/Button';
-import { useNotification } from '../../contexts/NotificationContext';
-
-const accidentCodeSchema = z.object({
-  accidentCode: z.string()
-    .min(8, 'Accident code must be at least 8 characters')
-    .max(15, 'Accident code cannot exceed 15 characters')
-    .regex(/^[A-Z0-9-]+$/, 'Code must contain only uppercase letters, numbers, and hyphens'),
-});
-
-type AccidentCodeForm = z.infer<typeof accidentCodeSchema>;
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AccidentCodeScreen: React.FC = () => {
+  const [accidentCode, setAccidentCode] = useState('');
   const navigate = useNavigate();
-  const { addNotification } = useNotification();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<AccidentCodeForm>({
-    resolver: zodResolver(accidentCodeSchema),
-  });
 
-  const onSubmit = async (data: AccidentCodeForm) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store the code in session storage for demo
-      sessionStorage.setItem('accidentCode', data.accidentCode);
-      
-      addNotification({
-        type: 'success',
-        message: 'Accident code validated successfully!',
-      });
-      
-      navigate('/onboarding/document-upload');
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: 'Failed to validate accident code. Please try again.',
-      });
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate('/onboarding/document-upload');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary-500 p-4">
-      <div 
-        className="absolute inset-0 bg-[url('/assets/protea-pattern.svg')] opacity-10"
-        aria-hidden="true"
-      ></div>
-      
-      <div className="w-full max-w-md animate-fade-in">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-primary-50">
-            <h1 className="text-xl font-semibold text-primary-800 flex items-center">
-              <FileText className="w-5 h-5 mr-2" />
-              Enter Accident Code
-            </h1>
-          </CardHeader>
-          
-          <CardBody>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <label 
-                  htmlFor="accidentCode" 
-                  className="block text-sm font-medium text-primary-700 mb-1"
-                >
-                  Accident Code
-                </label>
-                <div className="relative">
-                  <input
-                    id="accidentCode"
-                    type="text"
-                    {...register('accidentCode')}
-                    className={`block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-offset-2 ${
-                      errors.accidentCode
-                        ? 'border-error-300 focus:border-error-500 focus:ring-error-500'
-                        : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500'
-                    }`}
-                    placeholder="e.g., ACC-2024-12345"
-                  />
-                  <div className="absolute right-0 top-0 h-full flex items-center pr-3">
-                    <HelpCircle 
-                      className="w-5 h-5 text-neutral-400 cursor-help"
-                      title="Enter the accident reference code from your police report"
-                    />
-                  </div>
-                </div>
-                {errors.accidentCode && (
-                  <p className="mt-1 text-sm text-error-600">
-                    {errors.accidentCode.message}
-                  </p>
-                )}
-                <p className="mt-2 text-sm text-primary-600">
-                  This code can be found on your police report or accident report documentation
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={isSubmitting}
-                  className="flex-1"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                      Validating...
-                    </div>
-                  ) : (
-                    'Continue'
-                  )}
-                </Button>
-                
-                <Link to="/onboarding/document-upload" className="flex-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Skip for Now
-                  </Button>
-                </Link>
-              </div>
-            </form>
-          </CardBody>
-          
-          <CardFooter className="bg-primary-50 text-center">
-            <p className="text-sm text-primary-700">
-              Don't have an accident code?{' '}
-              <Link to="/help" className="text-primary-600 hover:text-primary-500 font-medium">
-                Learn More
-              </Link>
+    <div className="min-h-screen bg-[#003366] flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+        <h1 className="text-2xl font-bold text-[#003366] mb-6">
+          Enter Accident Code
+        </h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <label 
+              htmlFor="accidentCode"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Accident Code
+            </label>
+            <input
+              type="text"
+              id="accidentCode"
+              value={accidentCode}
+              onChange={(e) => setAccidentCode(e.target.value)}
+              placeholder="e.g., POL123456"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                       focus:ring-2 focus:ring-[#009933] focus:border-transparent"
+            />
+            <div 
+              className="absolute right-3 top-8 cursor-help"
+              title="Enter the code from your police report or insurance claim"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-5 w-5 text-gray-400"
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              Found on your police report or insurance claim document
             </p>
-          </CardFooter>
-        </Card>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                     hover:bg-[#009933]/90 transition-colors duration-200"
+          >
+            Link Accident
+          </button>
+        </form>
       </div>
     </div>
   );

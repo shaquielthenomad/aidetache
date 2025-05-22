@@ -1,8 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleStart = () => {
+    if (user?.role === 'insurer') {
+      // Insurers go directly to their dashboard
+      navigate('/insurer/dashboard');
+    } else {
+      // Policyholders go through the claim verification flow
+      navigate('/onboarding/insurer-code');
+    }
+  };
 
   return (
     <div 
@@ -19,14 +31,16 @@ const WelcomeScreen: React.FC = () => {
           Welcome to Detachd!
         </h1>
         <p className="text-white/90 text-lg mb-8 max-w-md mx-auto">
-          Let's get started with setting up your insurance verification system.
+          {user?.role === 'insurer'
+            ? "Let's set up your insurance verification system."
+            : "Let's get started with verifying your insurance claim."}
         </p>
         <button
-          onClick={() => navigate('/onboarding/insurer-code')}
+          onClick={handleStart}
           className="bg-[#009933] text-white px-8 py-3 rounded-lg font-semibold 
                    hover:bg-[#009933]/90 transition-colors duration-200"
         >
-          Start
+          {user?.role === 'insurer' ? 'Go to Dashboard' : 'Start Verification'}
         </button>
       </div>
     </div>

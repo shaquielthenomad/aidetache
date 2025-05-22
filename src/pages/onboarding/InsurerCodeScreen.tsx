@@ -1,14 +1,58 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const InsurerCodeScreen: React.FC = () => {
   const [insurerCode, setInsurerCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addNotification } = useNotification();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect insurers to their dashboard
+  React.useEffect(() => {
+    if (user?.role === 'insurer') {
+      navigate('/insurer/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/onboarding/accident-code');
+    setIsLoading(true);
+
+    try {
+      // In a real app, this would validate the insurer code with an API
+      // For demo, we'll accept any non-empty code
+      if (!insurerCode.trim()) {
+        addNotification({
+          type: 'error',
+          message: 'Please enter an insurer code',
+        });
+        return;
+      }
+
+      addNotification({
+        type: 'success',
+        message: 'Insurer code verified successfully',
+      });
+
+      navigate('/onboarding/accident-code');
+    } catch (error) {
+      console.error('Verification error:', error);
+      addNotification({
+        type: 'error',
+        message: 'Failed to verify insurer code. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Don't render for insurers
+  if (user?.role === 'insurer') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#003366] flex items-center justify-center p-4">
@@ -41,10 +85,12 @@ const InsurerCodeScreen: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
-                     hover:bg-[#009933]/90 transition-colors duration-200"
+            disabled={isLoading}
+            className={`w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                     hover:bg-[#009933]/90 transition-colors duration-200
+                     ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            Add Insurer
+            {isLoading ? 'Verifying...' : 'Add Insurer'}
           </button>
 
           <button

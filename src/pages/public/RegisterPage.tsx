@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
-import Button from '../../components/Button';
 
 interface RegisterForm {
   name: string;
@@ -17,6 +15,8 @@ interface RegisterForm {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<RegisterForm>({
     name: '',
     email: '',
@@ -36,14 +36,59 @@ const RegisterPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+    
+    // Form validation
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      addNotification({
+        type: 'error',
+        message: 'Please fill in all required fields',
+      });
       return;
     }
-    navigate('/onboarding/welcome');
+
+    if (formData.password !== formData.confirmPassword) {
+      addNotification({
+        type: 'error',
+        message: 'Passwords do not match',
+      });
+      return;
+    }
+
+    if (!formData.acceptTerms) {
+      addNotification({
+        type: 'error',
+        message: 'Please accept the terms and conditions',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // In a real app, this would call an API to register the user
+      // For demo, we'll just redirect to onboarding
+      addNotification({
+        type: 'success',
+        message: 'Registration successful! Redirecting to onboarding...',
+      });
+
+      // Redirect to appropriate onboarding flow based on user type
+      if (formData.userType === 'insurer') {
+        navigate('/onboarding/welcome');
+      } else {
+        navigate('/onboarding/insurer-code');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      addNotification({
+        type: 'error',
+        message: 'Registration failed. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -161,27 +206,27 @@ const RegisterPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-start">
+            <div className="flex items-center">
               <input
                 type="checkbox"
                 id="acceptTerms"
                 name="acceptTerms"
                 checked={formData.acceptTerms}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-[#009933] border-gray-300 rounded
+                className="h-4 w-4 text-[#009933] border-gray-300 rounded
                          focus:ring-[#009933]"
                 required
               />
               <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
-                I agree to the{' '}
+                I accept the{' '}
                 <button
                   type="button"
                   onClick={() => navigate('/terms')}
                   className="text-[#009933] hover:text-[#009933]/80"
                 >
                   Terms of Service
-                </button>{' '}
-                and{' '}
+                </button>
+                {' '}and{' '}
                 <button
                   type="button"
                   onClick={() => navigate('/privacy')}
@@ -194,10 +239,12 @@ const RegisterPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
-                       hover:bg-[#009933]/90 transition-colors duration-200"
+              disabled={isLoading}
+              className={`w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                       hover:bg-[#009933]/90 transition-colors duration-200
+                       ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Create Account
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 

@@ -30,6 +30,12 @@ import ResultPage from './pages/policyholder/ResultPage';
 import ClaimDetailsPage from './pages/policyholder/ClaimDetailsPage';
 import CertificateDownloadPage from './pages/policyholder/CertificateDownloadPage';
 
+// Insurer pages
+import InsurerDashboard from './pages/insurer/Dashboard';
+import ClaimQueuePage from './pages/insurer/ClaimQueuePage';
+import UsersPage from './pages/insurer/UsersPage';
+import InsurerSettingsPage from './pages/insurer/SettingsPage';
+
 // Auth context
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -69,6 +75,14 @@ function App() {
               <Route path="/result/:id" element={<ResultPage />} />
               <Route path="/claim/:id" element={<ClaimDetailsPage />} />
               <Route path="/certificates" element={<CertificateDownloadPage />} />
+            </Route>
+
+            {/* Protected routes - Insurer */}
+            <Route element={<ProtectedLayout role="insurer" />}>
+              <Route path="/insurer/dashboard" element={<InsurerDashboard />} />
+              <Route path="/insurer/claims" element={<ClaimQueuePage />} />
+              <Route path="/insurer/users" element={<UsersPage />} />
+              <Route path="/insurer/settings" element={<InsurerSettingsPage />} />
             </Route>
           </Routes>
         </Router>

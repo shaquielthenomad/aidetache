@@ -25,8 +25,13 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the redirect path from the location state, or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Get the redirect path from the location state, or default to appropriate dashboard
+  const getRedirectPath = (userType: 'policyholder' | 'insurer') => {
+    if (location.state?.from?.pathname) {
+      return location.state.from.pathname;
+    }
+    return userType === 'insurer' ? '/insurer/dashboard' : '/dashboard';
+  };
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -48,37 +53,18 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      if (loginType === 'policyholder') {
-        if (formData.email === DEMO_CREDENTIALS.POLICYHOLDER.email && 
-            formData.password === DEMO_CREDENTIALS.POLICYHOLDER.password) {
-          await login(formData.email, formData.password);
-          addNotification({
-            type: 'success',
-            message: 'Login successful! Redirecting...',
-          });
-          navigate(from, { replace: true });
-        } else {
-          addNotification({
-            type: 'error',
-            message: 'Invalid email or password. Please try again.',
-          });
-        }
-      } else {
-        if (formData.email === DEMO_CREDENTIALS.INSURER.email && 
-            formData.password === DEMO_CREDENTIALS.INSURER.password) {
-          await login(formData.email, formData.password);
-          addNotification({
-            type: 'success',
-            message: 'Login successful! Redirecting...',
-          });
-          navigate(from, { replace: true });
-        } else {
-          addNotification({
-            type: 'error',
-            message: 'Invalid email or password. Please try again.',
-          });
-        }
-      }
+      await login(formData.email, formData.password);
+      
+      // Determine user type from credentials
+      const isInsurer = formData.email === DEMO_CREDENTIALS.INSURER.email;
+      const redirectPath = getRedirectPath(isInsurer ? 'insurer' : 'policyholder');
+      
+      addNotification({
+        type: 'success',
+        message: 'Login successful! Redirecting...',
+      });
+      
+      navigate(redirectPath, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
       addNotification({
@@ -217,10 +203,12 @@ const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-[#009933] text-white py-2 px-4 rounded-md
-                       hover:bg-[#009933]/90 transition-colors duration-200"
+              disabled={isLoading}
+              className={`w-full bg-[#009933] text-white py-2 px-4 rounded-md
+                       hover:bg-[#009933]/90 transition-colors duration-200
+                       ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Sign In
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 

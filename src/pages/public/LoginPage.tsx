@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
 import Button from '../../components/Button';
+import { DEMO_CREDENTIALS } from '../../constants/auth';
 
 interface LoginForm {
   email: string;
@@ -48,19 +49,35 @@ const LoginPage: React.FC = () => {
     
     try {
       if (loginType === 'policyholder') {
-        await login(formData.email, formData.password);
-        addNotification({
-          type: 'success',
-          message: 'Login successful! Redirecting...',
-        });
-        navigate(from, { replace: true });
+        if (formData.email === DEMO_CREDENTIALS.POLICYHOLDER.email && 
+            formData.password === DEMO_CREDENTIALS.POLICYHOLDER.password) {
+          await login(formData.email, formData.password);
+          addNotification({
+            type: 'success',
+            message: 'Login successful! Redirecting...',
+          });
+          navigate(from, { replace: true });
+        } else {
+          addNotification({
+            type: 'error',
+            message: 'Invalid email or password. Please try again.',
+          });
+        }
       } else {
-        // Handle insurer login logic
-        addNotification({
-          type: 'success',
-          message: 'Insurer login logic not implemented yet',
-        });
-        navigate('/insurer/dashboard');
+        if (formData.email === DEMO_CREDENTIALS.INSURER.email && 
+            formData.password === DEMO_CREDENTIALS.INSURER.password) {
+          await login(formData.email, formData.password);
+          addNotification({
+            type: 'success',
+            message: 'Login successful! Redirecting...',
+          });
+          navigate(from, { replace: true });
+        } else {
+          addNotification({
+            type: 'error',
+            message: 'Invalid email or password. Please try again.',
+          });
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -74,8 +91,17 @@ const LoginPage: React.FC = () => {
   };
 
   const handleDemoLogin = () => {
-    // Set demo credentials and redirect to insurer dashboard
-    navigate('/insurer/dashboard');
+    if (loginType === 'insurer') {
+      setFormData({
+        email: DEMO_CREDENTIALS.INSURER.email,
+        password: DEMO_CREDENTIALS.INSURER.password
+      });
+    } else {
+      setFormData({
+        email: DEMO_CREDENTIALS.POLICYHOLDER.email,
+        password: DEMO_CREDENTIALS.POLICYHOLDER.password
+      });
+    }
   };
 
   return (
@@ -94,6 +120,9 @@ const LoginPage: React.FC = () => {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-[#003366]">Welcome Back</h1>
             <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <div className="mt-2 text-sm text-[#009933]">
+              Demo credentials are pre-filled for testing
+            </div>
           </div>
 
           {/* Login Type Selector */}
@@ -104,7 +133,10 @@ const LoginPage: React.FC = () => {
                   ? 'bg-white text-[#003366] shadow'
                   : 'text-gray-600 hover:text-[#003366]'
                 }`}
-              onClick={() => setLoginType('policyholder')}
+              onClick={() => {
+                setLoginType('policyholder');
+                handleDemoLogin();
+              }}
             >
               Policyholder
             </button>
@@ -114,7 +146,10 @@ const LoginPage: React.FC = () => {
                   ? 'bg-white text-[#003366] shadow'
                   : 'text-gray-600 hover:text-[#003366]'
                 }`}
-              onClick={() => setLoginType('insurer')}
+              onClick={() => {
+                setLoginType('insurer');
+                handleDemoLogin();
+              }}
             >
               Insurer
             </button>
@@ -189,26 +224,24 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {loginType === 'insurer' && (
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or</span>
-                </div>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
               </div>
-
-              <button
-                onClick={handleDemoLogin}
-                className="mt-4 w-full bg-[#003366] text-white py-2 px-4 rounded-md
-                         hover:bg-[#003366]/90 transition-colors duration-200"
-              >
-                Try Demo Insurer Account
-              </button>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
             </div>
-          )}
+
+            <button
+              onClick={handleDemoLogin}
+              className="mt-4 w-full bg-[#003366] text-white py-2 px-4 rounded-md
+                       hover:bg-[#003366]/90 transition-colors duration-200"
+            >
+              Try Demo {loginType === 'insurer' ? 'Insurer' : 'Policyholder'} Account
+            </button>
+          </div>
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}

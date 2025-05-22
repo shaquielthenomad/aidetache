@@ -1,258 +1,329 @@
 import React, { useState } from 'react';
-import { Save, Bell, Lock, Shield, Sliders } from 'lucide-react';
-import Card, { CardBody } from '../../components/Card';
+import { User, Lock, Bell, Shield, Save } from 'lucide-react';
+import Card, { CardBody, CardHeader } from '../../components/Card';
 import Button from '../../components/Button';
+import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
+
+interface SettingsFormData {
+  profile: {
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    role: string;
+  };
+  notifications: {
+    newClaims: boolean;
+    claimUpdates: boolean;
+    fraudAlerts: boolean;
+    systemUpdates: boolean;
+  };
+  security: {
+    twoFactorEnabled: boolean;
+    sessionTimeout: number;
+    passwordChangeRequired: boolean;
+  };
+}
 
 const SettingsPage: React.FC = () => {
-  const [settings, setSettings] = useState({
+  const { addNotification } = useNotification();
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState<SettingsFormData>({
+    profile: {
+      name: 'Insurer Admin',
+      email: 'admin@insurer.com',
+      phone: '+27 12 345 6789',
+      company: 'Insurance Co. Ltd',
+      role: 'Administrator'
+    },
     notifications: {
       newClaims: true,
-      highRiskAlerts: true,
-      statusUpdates: false,
-      dailyReports: true
-    },
-    verification: {
-      autoVerifyLowRisk: true,
-      riskThreshold: 20,
-      requireDocuments: true,
-      allowAppeal: true
+      claimUpdates: true,
+      fraudAlerts: true,
+      systemUpdates: false
     },
     security: {
-      twoFactorAuth: true,
+      twoFactorEnabled: false,
       sessionTimeout: 30,
-      ipWhitelist: false,
-      auditLogs: true
+      passwordChangeRequired: false
     }
   });
 
-  const handleNotificationChange = (key: keyof typeof settings.notifications) => {
-    setSettings(prev => ({
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        [name]: value
+      }
+    }));
+  };
+
+  const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({
       ...prev,
       notifications: {
         ...prev.notifications,
-        [key]: !prev.notifications[key]
+        [name]: checked
       }
     }));
   };
 
-  const handleVerificationChange = (key: keyof typeof settings.verification) => {
-    if (key === 'riskThreshold') return;
-    setSettings(prev => ({
-      ...prev,
-      verification: {
-        ...prev.verification,
-        [key]: !prev.verification[key]
-      }
-    }));
-  };
-
-  const handleSecurityChange = (key: keyof typeof settings.security) => {
-    if (key === 'sessionTimeout') return;
-    setSettings(prev => ({
+  const handleSecurityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, type, checked, value } = e.target;
+    setFormData(prev => ({
       ...prev,
       security: {
         ...prev.security,
-        [key]: !prev.security[key]
+        [name]: type === 'checkbox' ? checked : Number(value)
       }
     }));
   };
 
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // TODO: Implement actual API call to save settings
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      addNotification({
+        type: 'success',
+        message: 'Settings saved successfully'
+      });
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to save settings'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-primary-800 mb-2">
-          Settings
-        </h1>
-        <p className="text-primary-600">
-          Configure your insurance verification system
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#003366] text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-primary-200">Manage your account settings and preferences</p>
+        </div>
 
-      <div className="grid gap-6">
-        {/* Notifications */}
-        <Card className="shadow-md">
-          <CardBody className="p-6">
-            <div className="flex items-center mb-4">
-              <Bell className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-primary-800">
-                Notification Preferences
-              </h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+        <div className="space-y-6">
+          {/* Profile Settings */}
+          <Card className="shadow-lg">
+            <CardHeader className="bg-primary-50">
+              <div className="flex items-center">
+                <User className="w-5 h-5 text-primary-600 mr-2" />
+                <h2 className="text-xl font-semibold text-primary-800">Profile Settings</h2>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-sm font-medium text-primary-900">New Claims</h3>
-                  <p className="text-sm text-primary-500">Get notified when new claims are submitted</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Full Name
+                  </label>
                   <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.notifications.newClaims}
-                    onChange={() => handleNotificationChange('newClaims')}
+                    type="text"
+                    name="name"
+                    value={formData.profile.name}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
+                </div>
                 <div>
-                  <h3 className="text-sm font-medium text-primary-900">High Risk Alerts</h3>
-                  <p className="text-sm text-primary-500">Receive alerts for high-risk claims</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Email Address
+                  </label>
                   <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.notifications.highRiskAlerts}
-                    onChange={() => handleNotificationChange('highRiskAlerts')}
+                    type="email"
+                    name="email"
+                    value={formData.profile.email}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
+                </div>
                 <div>
-                  <h3 className="text-sm font-medium text-primary-900">Daily Reports</h3>
-                  <p className="text-sm text-primary-500">Receive daily summary reports</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Phone Number
+                  </label>
                   <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.notifications.dailyReports}
-                    onChange={() => handleNotificationChange('dailyReports')}
+                    type="tel"
+                    name="phone"
+                    value={formData.profile.phone}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Verification Settings */}
-        <Card className="shadow-md">
-          <CardBody className="p-6">
-            <div className="flex items-center mb-4">
-              <Shield className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-primary-800">
-                Verification Settings
-              </h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+                </div>
                 <div>
-                  <h3 className="text-sm font-medium text-primary-900">Auto-verify Low Risk</h3>
-                  <p className="text-sm text-primary-500">Automatically verify claims below risk threshold</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Company
+                  </label>
                   <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.verification.autoVerifyLowRisk}
-                    onChange={() => handleVerificationChange('autoVerifyLowRisk')}
+                    type="text"
+                    name="company"
+                    value={formData.profile.company}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-primary-900 mb-1">Risk Threshold</h3>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={settings.verification.riskThreshold}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    verification: {
-                      ...prev.verification,
-                      riskThreshold: parseInt(e.target.value)
-                    }
-                  }))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-primary-500 mt-1">
-                  <span>Low Risk</span>
-                  <span>{settings.verification.riskThreshold}%</span>
-                  <span>High Risk</span>
                 </div>
               </div>
-            </div>
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
 
-        {/* Security Settings */}
-        <Card className="shadow-md">
-          <CardBody className="p-6">
-            <div className="flex items-center mb-4">
-              <Lock className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-primary-800">
-                Security Settings
-              </h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          {/* Notification Settings */}
+          <Card className="shadow-lg">
+            <CardHeader className="bg-primary-50">
+              <div className="flex items-center">
+                <Bell className="w-5 h-5 text-primary-600 mr-2" />
+                <h2 className="text-xl font-semibold text-primary-800">Notification Preferences</h2>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">New Claims</h3>
+                    <p className="text-sm text-primary-600">Get notified when new claims are submitted</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="newClaims"
+                      checked={formData.notifications.newClaims}
+                      onChange={handleNotificationChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">Claim Updates</h3>
+                    <p className="text-sm text-primary-600">Receive notifications for claim status changes</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="claimUpdates"
+                      checked={formData.notifications.claimUpdates}
+                      onChange={handleNotificationChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">Fraud Alerts</h3>
+                    <p className="text-sm text-primary-600">Get notified of potential fraud cases</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="fraudAlerts"
+                      checked={formData.notifications.fraudAlerts}
+                      onChange={handleNotificationChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">System Updates</h3>
+                    <p className="text-sm text-primary-600">Receive notifications about system maintenance and updates</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="systemUpdates"
+                      checked={formData.notifications.systemUpdates}
+                      onChange={handleNotificationChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Security Settings */}
+          <Card className="shadow-lg">
+            <CardHeader className="bg-primary-50">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-primary-600 mr-2" />
+                <h2 className="text-xl font-semibold text-primary-800">Security Settings</h2>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">Two-Factor Authentication</h3>
+                    <p className="text-sm text-primary-600">Add an extra layer of security to your account</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="twoFactorEnabled"
+                      checked={formData.security.twoFactorEnabled}
+                      onChange={handleSecurityChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
                 <div>
-                  <h3 className="text-sm font-medium text-primary-900">Two-Factor Authentication</h3>
-                  <p className="text-sm text-primary-500">Require 2FA for all staff accounts</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Session Timeout (minutes)
+                  </label>
                   <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.security.twoFactorAuth}
-                    onChange={() => handleSecurityChange('twoFactorAuth')}
+                    type="number"
+                    name="sessionTimeout"
+                    value={formData.security.sessionTimeout}
+                    onChange={handleSecurityChange}
+                    min="5"
+                    max="120"
+                    className="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-primary-900">Audit Logs</h3>
-                  <p className="text-sm text-primary-500">Keep detailed logs of all actions</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.security.auditLogs}
-                    onChange={() => handleSecurityChange('auditLogs')}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                </label>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-primary-800">Require Password Change</h3>
+                    <p className="text-sm text-primary-600">Force password change on next login</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="passwordChangeRequired"
+                      checked={formData.security.passwordChangeRequired}
+                      onChange={handleSecurityChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-primary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
               </div>
+            </CardBody>
+          </Card>
 
-              <div>
-                <h3 className="text-sm font-medium text-primary-900 mb-1">Session Timeout (minutes)</h3>
-                <input
-                  type="number"
-                  min="5"
-                  max="120"
-                  value={settings.security.sessionTimeout}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    security: {
-                      ...prev.security,
-                      sessionTimeout: parseInt(e.target.value)
-                    }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button variant="primary" className="flex items-center">
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

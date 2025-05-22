@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, FileText, Info, ArrowLeft, BarChart2 } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Info, ArrowLeft, BarChart2, Clock } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useStore } from '../../store';
 import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
@@ -26,6 +26,19 @@ const ResultPage: React.FC = () => {
     timestamp: new Date().toISOString(),
   });
   
+  // Add timestamp state
+  const [submissionTime] = useState(new Date().toISOString());
+  const [currentTime, setCurrentTime] = useState(new Date().toISOString());
+
+  // Update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toISOString());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const fetchResultData = async () => {
       try {
@@ -81,30 +94,73 @@ const ResultPage: React.FC = () => {
     fetchResultData();
   }, [id, navigate, addNotification]);
   
-  // Generate certificate
+  // Generate certificate with improved error handling
   const handleGenerateCertificate = async () => {
     try {
       if (!id) {
         throw new Error('No claim ID found');
       }
 
-      // Generate certificate
-      const certificate = await generateCertificate(id);
-      
+      // Validate timestamps for security
+      const timeDiff = new Date(currentTime).getTime() - new Date(submissionTime).getTime();
+      if (timeDiff > 3600000) { // 1 hour
+        throw new Error('Certificate generation expired. Please submit a new claim.');
+      }
+
+      // Show loading state
       addNotification({
-        type: 'success',
-        message: 'Certificate generated successfully!',
+        type: 'info',
+        message: 'Generating certificate...',
       });
+
+      // Generate certificate with retry logic
+      let retries = 3;
+      let certificate = null;
+      let lastError = null;
+
+      while (retries > 0 && !certificate) {
+        try {
+          certificate = await generateCertificate(id);
+          break;
+        } catch (error: any) {
+          lastError = error;
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          }
+        }
+      }
+
+      if (!certificate) {
+        throw lastError || new Error('Failed to generate certificate after multiple attempts');
+      }
 
       // Download the certificate
       await downloadCertificate(certificate.id);
       
+      addNotification({
+        type: 'success',
+        message: 'Certificate generated and downloaded successfully!',
+      });
+
       // Navigate to certificates page
       navigate('/certificates');
     } catch (error: any) {
+      console.error('Certificate generation error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to generate certificate';
+      if (error.message.includes('expired')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('unauthorized')) {
+        errorMessage = 'Session expired. Please log in again.';
+      }
+
       addNotification({
         type: 'error',
-        message: error.message || 'Failed to generate certificate',
+        message: errorMessage,
       });
     }
   };
@@ -342,6 +398,32 @@ const ResultPage: React.FC = () => {
                   </>
                 )}
               </ul>
+            </CardBody>
+          </Card>
+
+          {/* Add timestamp information */}
+          <Card className="shadow-md mb-6">
+            <CardHeader className="bg-primary-50">
+              <h3 className="font-medium text-primary-800 flex items-center">
+                <Clock className="w-4 h-4 mr-2" />
+                Timestamps
+              </h3>
+            </CardHeader>
+            <CardBody className="text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-primary-600">Submission Time:</p>
+                  <p className="font-medium text-primary-800">
+                    {new Date(submissionTime).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-primary-600">Current Time:</p>
+                  <p className="font-medium text-primary-800">
+                    {new Date(currentTime).toLocaleString()}
+                  </p>
+                </div>
+              </div>
             </CardBody>
           </Card>
         </div>

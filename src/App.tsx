@@ -9,7 +9,7 @@ import InsurerLayout from './layouts/InsurerLayout';
 
 // Public pages
 import HomePage from './pages/public/HomePage';
-import LoginPage from './pages/auth/LoginPage';
+import LoginPage from './pages/public/LoginPage';
 import RegisterPage from './pages/public/RegisterPage';
 import AboutPage from './pages/public/AboutPage';
 import ContactPage from './pages/public/ContactPage';

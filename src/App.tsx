@@ -116,9 +116,6 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Redirect root to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-
             {/* 404 Page */}
             <Route path="*" element={<NotFoundPage />} />
 

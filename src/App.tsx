@@ -37,7 +37,7 @@ import DashboardPage from './pages/insurer/DashboardPage';
 import ClaimQueuePage from './pages/insurer/ClaimQueuePage';
 import AnalyticsPage from './pages/insurer/AnalyticsPage';
 import SettingsPage from './pages/insurer/SettingsPage';
-import NotFoundPage from './pages/NotFoundPage';
+import NotFoundPage from './pages/public/NotFoundPage';
 import ClaimReviewPage from './pages/insurer/ClaimReviewPage';
 
 // Auth context

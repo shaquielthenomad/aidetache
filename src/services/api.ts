@@ -47,19 +47,22 @@ export const API_ENDPOINTS = {
   },
 };
 
-// Create axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  timeout: 10000,
+// API Configuration
+const API_BASE_URL = process.env.VITE_API_URL || 'https://api.aidetache.com';
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor
+// Add request interceptor for authentication
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -70,34 +73,21 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError<ApiError>) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
-
-    // Handle token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        const response = await api.post(API_ENDPOINTS.AUTH.REFRESH, { refreshToken });
-        const { accessToken } = response.data.data;
-        
-        localStorage.setItem('accessToken', accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Handle refresh token failure
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
+  (error) => {
+    if (error.response) {
+      // Server responded with error
+      const message = error.response.data?.message || 'An error occurred';
+      return Promise.reject(new Error(message));
+    } else if (error.request) {
+      // Request made but no response
+      return Promise.reject(new Error('Network error. Please check your connection.'));
+    } else {
+      // Request setup error
+      return Promise.reject(new Error('Request failed. Please try again.'));
     }
-
-    return Promise.reject(error);
   }
 );
 

@@ -1,56 +1,143 @@
-import { PublicClientApplication, AuthenticationResult, AccountInfo } from '@azure/msal-browser';
-import { MsalProvider, useMsal } from '@azure/msal-react';
-import { Certificate } from '../store';
+import { Auth0Client } from '@auth0/auth0-spa-js';
+import { createContext, useContext, useEffect, useState } from 'react';
 
-// Azure AD B2C Configuration
-const msalConfig = {
-  auth: {
-    clientId: import.meta.env.VITE_AZURE_CLIENT_ID,
-    authority: `https://${import.meta.env.VITE_AZURE_TENANT_NAME}.b2clogin.com/${import.meta.env.VITE_AZURE_TENANT_NAME}.onmicrosoft.com/${import.meta.env.VITE_AZURE_POLICY_NAME}`,
-    knownAuthorities: [`${import.meta.env.VITE_AZURE_TENANT_NAME}.b2clogin.com`],
-    redirectUri: window.location.origin,
-    postLogoutRedirectUri: window.location.origin,
+// Auth0 configuration
+const auth0Config = {
+  domain: import.meta.env.VITE_AUTH0_DOMAIN,
+  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
+  authorizationParams: {
+    redirect_uri: import.meta.env.VITE_AUTH0_CALLBACK_URL,
+    audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+    scope: import.meta.env.VITE_AUTH0_SCOPE,
   },
-  cache: {
-    cacheLocation: 'localStorage',
-    storeAuthStateInCookie: false,
-  },
-  system: {
-    loggerOptions: {
-      loggerCallback: (level: number, message: string, containsPii: boolean) => {
-        if (containsPii) return;
-        switch (level) {
-          case 0:
-            console.error(message);
-            break;
-          case 1:
-            console.warn(message);
-            break;
-          case 2:
-            console.info(message);
-            break;
-          case 3:
-            console.debug(message);
-            break;
-          default:
-            console.log(message);
-        }
-      },
-      logLevel: 3,
-    },
-  },
+  cacheLocation: 'localstorage' as const,
 };
 
-// Initialize MSAL instance
-const msalInstance = new PublicClientApplication(msalConfig);
+// Initialize Auth0 client
+const auth0Client = new Auth0Client(auth0Config);
 
+// Auth context interface
+interface AuthContextType {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: any;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+  getToken: () => Promise<string | undefined>;
+  handleRedirectCallback: () => Promise<void>;
+}
+
+// Create auth context
+const AuthContext = createContext<AuthContextType | null>(null);
+
+// Auth provider component
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // Check if we're handling a redirect
+        if (window.location.search.includes('code=')) {
+          await handleRedirectCallback();
+        }
+
+        // Check authentication status
+        const authenticated = await auth0Client.isAuthenticated();
+        setIsAuthenticated(authenticated);
+
+        if (authenticated) {
+          const userProfile = await auth0Client.getUser();
+          setUser(userProfile);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const login = async () => {
+    try {
+      await auth0Client.loginWithRedirect();
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await auth0Client.logout({
+        logoutParams: {
+          returnTo: window.location.origin,
+        },
+      });
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  };
+
+  const getToken = async () => {
+    try {
+      return await auth0Client.getTokenSilently();
+    } catch (error) {
+      console.error('Get token error:', error);
+      return undefined;
+    }
+  };
+
+  const handleRedirectCallback = async () => {
+    try {
+      await auth0Client.handleRedirectCallback();
+      const authenticated = await auth0Client.isAuthenticated();
+      setIsAuthenticated(authenticated);
+
+      if (authenticated) {
+        const userProfile = await auth0Client.getUser();
+        setUser(userProfile);
+      }
+    } catch (error) {
+      console.error('Redirect callback error:', error);
+      throw error;
+    }
+  };
+
+  const value = {
+    isAuthenticated,
+    isLoading,
+    user,
+    login,
+    logout,
+    getToken,
+    handleRedirectCallback,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Custom hook for using auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Auth service class for non-React components
 export class AuthService {
   private static instance: AuthService;
-  private msalInstance: PublicClientApplication;
 
-  private constructor() {
-    this.msalInstance = msalInstance;
-  }
+  private constructor() {}
 
   static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -59,90 +146,40 @@ export class AuthService {
     return AuthService.instance;
   }
 
-  async login(): Promise<AuthenticationResult> {
-    try {
-      const loginRequest = {
-        scopes: ['openid', 'profile', 'email', 'api://your-api-scope/access'],
-      };
-
-      const response = await this.msalInstance.loginPopup(loginRequest);
-      return response;
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw new Error('Authentication failed');
-    }
+  async login(): Promise<void> {
+    await auth0Client.loginWithRedirect();
   }
 
   async logout(): Promise<void> {
+    await auth0Client.logout({
+      logoutParams: {
+        returnTo: window.location.origin,
+      },
+    });
+  }
+
+  async getToken(): Promise<string | undefined> {
     try {
-      await this.msalInstance.logoutPopup();
+      return await auth0Client.getTokenSilently();
     } catch (error) {
-      console.error('Logout failed:', error);
-      throw new Error('Logout failed');
+      console.error('Get token error:', error);
+      return undefined;
     }
   }
 
-  async getToken(): Promise<string> {
+  async getUser(): Promise<any> {
     try {
-      const account = this.msalInstance.getAllAccounts()[0];
-      if (!account) {
-        throw new Error('No active account');
-      }
-
-      const tokenRequest = {
-        scopes: ['api://your-api-scope/access'],
-        account: account,
-      };
-
-      const response = await this.msalInstance.acquireTokenSilent(tokenRequest);
-      return response.accessToken;
+      return await auth0Client.getUser();
     } catch (error) {
-      console.error('Token acquisition failed:', error);
-      throw new Error('Failed to acquire token');
+      console.error('Get user error:', error);
+      return null;
     }
-  }
-
-  async getUserInfo(): Promise<AccountInfo | null> {
-    const accounts = this.msalInstance.getAllAccounts();
-    return accounts[0] || null;
   }
 
   async isAuthenticated(): Promise<boolean> {
-    const account = await this.getUserInfo();
-    return !!account;
+    return await auth0Client.isAuthenticated();
   }
 }
 
 // Export singleton instance
-export const authService = AuthService.getInstance();
-
-// Export MSAL Provider component
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <MsalProvider instance={msalInstance}>
-      {children}
-    </MsalProvider>
-  );
-};
-
-// Custom hook for authentication
-export const useAuth = () => {
-  const { instance, accounts, inProgress } = useMsal();
-  const account = accounts[0];
-
-  return {
-    isAuthenticated: !!account,
-    user: account,
-    login: () => instance.loginPopup(),
-    logout: () => instance.logoutPopup(),
-    getToken: async () => {
-      if (!account) throw new Error('No active account');
-      const response = await instance.acquireTokenSilent({
-        scopes: ['api://your-api-scope/access'],
-        account,
-      });
-      return response.accessToken;
-    },
-    isLoading: inProgress !== 'none',
-  };
-}; 
+export const authService = AuthService.getInstance(); 

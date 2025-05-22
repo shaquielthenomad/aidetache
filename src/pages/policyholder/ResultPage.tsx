@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, FileText, Info, ArrowLeft, BarChart2 } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useStore } from '../../store';
 import Card, { CardBody, CardHeader, CardFooter } from '../../components/Card';
 import Button from '../../components/Button';
 
@@ -9,6 +10,7 @@ const ResultPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
+  const { generateCertificate, downloadCertificate } = useStore();
   
   const [resultData, setResultData] = useState<{
     image: string | null;
@@ -25,61 +27,86 @@ const ResultPage: React.FC = () => {
   });
   
   useEffect(() => {
-    // Check if verification was completed
-    const uploadedImage = sessionStorage.getItem('uploadedImage');
-    const uploadedImageName = sessionStorage.getItem('uploadedImageName');
-    const verificationPassed = sessionStorage.getItem('verificationPassed');
-    const confidenceScore = sessionStorage.getItem('confidenceScore');
-    
-    if (!uploadedImage || verificationPassed === null) {
-      addNotification({
-        type: 'error',
-        message: 'No verification results found. Please upload an image first.',
-      });
-      navigate('/upload');
-      return;
-    }
-    
-    setResultData({
-      image: uploadedImage,
-      imageName: uploadedImageName,
-      passed: verificationPassed === 'true',
-      confidence: confidenceScore ? parseInt(confidenceScore, 10) : 0,
-      timestamp: new Date().toISOString(),
-    });
-    
-    // Store in sessionStorage as a claim for the dashboard
-    const claimId = id || Math.floor(Math.random() * 1000000).toString();
-    
-    const existingClaims = JSON.parse(sessionStorage.getItem('claims') || '[]');
-    
-    const newClaim = {
-      id: claimId,
-      image: uploadedImage,
-      imageName: uploadedImageName,
-      passed: verificationPassed === 'true',
-      confidence: confidenceScore ? parseInt(confidenceScore, 10) : 0,
-      timestamp: new Date().toISOString(),
+    const fetchResultData = async () => {
+      try {
+        // Get data from sessionStorage for backward compatibility
+        const uploadedImage = sessionStorage.getItem('uploadedImage');
+        const uploadedImageName = sessionStorage.getItem('uploadedImageName');
+        const verificationPassed = sessionStorage.getItem('verificationPassed');
+        const confidenceScore = sessionStorage.getItem('confidenceScore');
+        
+        if (!uploadedImage || verificationPassed === null) {
+          addNotification({
+            type: 'error',
+            message: 'No verification results found. Please upload an image first.',
+          });
+          navigate('/upload');
+          return;
+        }
+        
+        setResultData({
+          image: uploadedImage,
+          imageName: uploadedImageName,
+          passed: verificationPassed === 'true',
+          confidence: confidenceScore ? parseInt(confidenceScore, 10) : 0,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Store in sessionStorage as a claim for the dashboard
+        const claimId = id || Math.floor(Math.random() * 1000000).toString();
+        const existingClaims = JSON.parse(sessionStorage.getItem('claims') || '[]');
+        
+        const newClaim = {
+          id: claimId,
+          image: uploadedImage,
+          imageName: uploadedImageName,
+          passed: verificationPassed === 'true',
+          confidence: confidenceScore ? parseInt(confidenceScore, 10) : 0,
+          timestamp: new Date().toISOString(),
+        };
+        
+        // Add to claims if not already present
+        if (!existingClaims.some((claim: any) => claim.id === claimId)) {
+          sessionStorage.setItem('claims', JSON.stringify([...existingClaims, newClaim]));
+        }
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Failed to load verification results',
+        });
+        navigate('/upload');
+      }
     };
-    
-    // Add to claims if not already present
-    if (!existingClaims.some((claim: any) => claim.id === claimId)) {
-      sessionStorage.setItem('claims', JSON.stringify([...existingClaims, newClaim]));
-    }
+
+    fetchResultData();
   }, [id, navigate, addNotification]);
   
   // Generate certificate
-  const handleGenerateCertificate = () => {
-    addNotification({
-      type: 'success',
-      message: 'Certificate generated successfully! Redirecting to download page...',
-    });
-    
-    // In a real app, this would generate a PDF certificate
-    // For demo purposes, we'll just navigate to the certificates page
-    setTimeout(() => {
+  const handleGenerateCertificate = async () => {
+    try {
+      if (!id) {
+        throw new Error('No claim ID found');
+      }
+
+      // Generate certificate
+      const certificate = await generateCertificate(id);
+      
+      addNotification({
+        type: 'success',
+        message: 'Certificate generated successfully!',
+      });
+
+      // Download the certificate
+      await downloadCertificate(certificate.id);
+      
+      // Navigate to certificates page
       navigate('/certificates');
-    }, 1500);
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to generate certificate',
+      });
+    }
   };
   
   // Upload another image
